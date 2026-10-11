@@ -8,6 +8,24 @@ from analyze_eiken_distribution import band, BANDS
 from build_eiken_crosswalk import UPSTREAM,load_cefr,norm
 KELLY="https://raw.githubusercontent.com/kotoshu/frequency-list-kelly/main/data/en.json"
 LEVELS=("A1","A2","B1","B2","C1","C2")
+IRREGULAR={"became":"become","felt":"feel","went":"go","gone":"go","was":"be","were":"be","had":"have","did":"do","done":"do","got":"get","known":"know","knew":"know","seen":"see","saw":"see","written":"write","wrote":"write"}
+def candidate_lemmas(w):
+    """Conservative candidates: accept only if present in an actual CEFR source."""
+    out=[]
+    if w in IRREGULAR:out.append(IRREGULAR[w])
+    if w.endswith("ing") and len(w)>5:
+        stem=w[:-3]
+        out.extend([stem,stem+"e"])
+        if len(stem)>2 and stem[-1]==stem[-2]:out.append(stem[:-1])
+    if w.endswith("ied") and len(w)>4:out.append(w[:-3]+"y")
+    if w.endswith("ed") and len(w)>4:
+        stem=w[:-2];out.extend([stem,stem+"e"])
+        if len(stem)>2 and stem[-1]==stem[-2]:out.append(stem[:-1])
+    if w.endswith("ies") and len(w)>4:out.append(w[:-3]+"y")
+    if w.endswith("es") and len(w)>4:out.extend([w[:-2],w[:-1]])
+    if w.endswith("s") and len(w)>3:out.append(w[:-1])
+    return list(dict.fromkeys(x for x in out if x!=w))
+
 def main():
     raw=pathlib.Path("vocabulary/raw")
     baseline=load_cefr([raw/"cefrj-vocabulary-profile-1.5.csv",raw/"octanove-vocabulary-profile-c1c2-1.0.csv"])
@@ -29,6 +47,7 @@ def main():
     a=CEFRAnalyzer(); counts=collections.Counter(); levels=collections.Counter()
     comparison=collections.Counter(); disagreements=collections.Counter()
     frequency=collections.defaultdict(collections.Counter)
+    cleaning=collections.Counter(); cleaning_examples=collections.defaultdict(list)
     unmatched_zipf_5_to_6=[]
     for w in grade1:
         old={e["cefr"] for e in baseline.get(w,[]) if e["cefr"] in LEVELS}
@@ -41,6 +60,20 @@ def main():
         frequency[freq_band]["matched_after_kelly" if (old or new) else "unmatched_after_kelly"]+=1
         if freq_band=="5-6" and not old and not new:
             unmatched_zipf_5_to_6.append({"word":w,"zipf":round(zipf_frequency(w,"en"),2)})
+        if not old and not new:
+            if len(w)==1 and w.isalpha():
+                cleaning["single_letter_quarantine"]+=1
+                if len(cleaning_examples["single_letter_quarantine"])<30:cleaning_examples["single_letter_quarantine"].append(w)
+            else:
+                matches=[(lemma,{e["cefr"] for e in baseline.get(lemma,[]) if e["cefr"] in LEVELS}|kelly.get(lemma,set())) for lemma in candidate_lemmas(w)]
+                matches=[(lemma,levels) for lemma,levels in matches if levels]
+                if len(matches)==1:
+                    cleaning["one_candidate_lemma_match"]+=1
+                    if len(cleaning_examples["one_candidate_lemma_match"])<30:cleaning_examples["one_candidate_lemma_match"].append({"surface":w,"lemma":matches[0][0]})
+                elif len(matches)>1:
+                    cleaning["ambiguous_candidate_lemmas"]+=1
+                    if len(cleaning_examples["ambiguous_candidate_lemmas"])<30:cleaning_examples["ambiguous_candidate_lemmas"].append({"surface":w,"candidates":[x[0] for x in matches]})
+                else:cleaning["still_unmatched_after_conservative_cleaning"]+=1
         if old:counts["baseline_matched"]+=1
         if new:
             counts["kelly_matched"]+=1
@@ -65,7 +98,7 @@ def main():
                             disagreements[estimated+" -> "+"/".join(sorted(new))]+=1
             else:counts["still_unmatched_after_kelly"]+=1
     result={"source":KELLY,"kelly_total_headwords":len(kelly),"counts":dict(counts),
-            "levels":dict(levels),"unmatched_zipf_5_to_6":sorted(unmatched_zipf_5_to_6,key=lambda x:(-x["zipf"],x["word"])),"frequency_by_zipf_band":{k:dict(v) for k,v in frequency.items()},"cefrpy_vs_kelly_on_new_matches":dict(comparison),
+            "levels":dict(levels),"cleaning_audit":{"counts":dict(cleaning),"examples":dict(cleaning_examples),"note":"Only previously unmatched words evaluated; no original rows removed. Candidate lemmas require CEFR-source match and ambiguous candidates remain unassigned."},"unmatched_zipf_5_to_6":sorted(unmatched_zipf_5_to_6,key=lambda x:(-x["zipf"],x["word"])),"frequency_by_zipf_band":{k:dict(v) for k,v in frequency.items()},"cefrpy_vs_kelly_on_new_matches":dict(comparison),
             "cefrpy_disagreements_top":disagreements.most_common(12),
             "cautions":["Kelly is independent of CEFR-J but its CEFR methodology may differ.",
             "Exact headword matching, not sense or POS agreement.","Kelly derived data subject to original project terms.",
