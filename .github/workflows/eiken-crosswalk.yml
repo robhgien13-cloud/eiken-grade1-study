@@ -1,0 +1,23 @@
+name: EIKEN CEFR crosswalk
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/eiken-crosswalk.yml'
+      - 'vocabulary/tools/build_eiken_crosswalk.py'
+jobs:
+  crosswalk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Crosswalk upstream with CEFR datasets
+        run: python vocabulary/tools/build_eiken_crosswalk.py
+      - name: Upload aggregate report
+        uses: actions/upload-artifact@v4
+        with:
+          name: eiken-crosswalk-summary
+          path: vocabulary/analysis/eiken-crosswalk-summary.json
