@@ -47,6 +47,8 @@ def main():
                 d["zipf:"+band(z)]+=1
                 d["cefr:unmatched" if not levels else "cefr:matched"]+=1
                 for lv in levels:d["cefr:"+lv]+=1
+                if levels:
+                    d["cefr:multiple_levels" if len(levels)>1 else "cefr:single_level"]+=1
     summary={"source":UPSTREAM,"method":"unique casefolded unigram headwords; excludes isTypo; grade1 evidence based on upstream count; wordfreq Zipf frequency, not rank","frequency_bands":"Zipf 6=1 per 1000 words, 5=1 per 10000, 4=1 per 100000, 3=1 per million, 2=1 per 10 million (approx).","groups":{k:dict(v) for k,v in groups.items()},"cautions":["CEFR counts may overlap across levels; not mutually exclusive.","Grade1 count not verified against held-out original exam papers.","One EIKEN-derived dataset is used here; independent second dataset must be added and compared.","Zipf bands are not top-N rank bins."]}
     path=pathlib.Path("vocabulary/analysis/eiken-distribution-summary.json")
     path.write_text(json.dumps(summary,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
