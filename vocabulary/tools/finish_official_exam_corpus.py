@@ -55,20 +55,39 @@ def reading(doc):
   diagnostics.append({"page":pno,"question_markers":len(qs),"accepted_lines":len(kept),"status":"auto-segmented"})
  return " ".join(accepted),diagnostics
 def listening(doc):
- out=[];dropped=0;in_question=False
+ # Spoken-content state machine: skip exam directions, printed questions,
+ # speaker symbols, passage headings, and answer-marking announcements.
+ out=[];dropped=0;mode="intro";question=False
+ speaker=re.compile(r"^(?:[★☆]+|(?:Interviewer|[A-Z][a-z]+)\s*\([A-Z]\)|[A-Z]{1,3})\s*:\s*")
+ marker=re.compile(r"^[★☆]+\s*(?:No\.\s*\d+|\([A-J]\))")
  for p in doc:
   for x,y,s in lines(p):
-   if HEADER.search(s) or NARRATION.search(s) or not re.search("[A-Za-z]",s):
+   t=s.strip()
+   if HEADER.search(t) or not re.search("[A-Za-z]",t):
     dropped+=1;continue
-   if re.search(r"\bQuestions?\s*:",s,re.I):
-    in_question=True;dropped+=1;continue
-   if re.match(r"^[☆★*\s]*(?:No\.\s*\d+|\([A-J]\))",s):
-    in_question=False;dropped+=1;continue
-   if in_question:
+   if re.search(r"Here are the directions for Part|Finally, here are the directions|The listening test for the Grade|This test has four parts",t,re.I):
+    mode="directions";dropped+=1;continue
+   if marker.match(t):
+    # Part 3 (F-J) markers contain an unspoken 10-second instruction.
+    mode="spoken";question=False
+    t=marker.sub("",t).strip()
+    if not t or re.search(r"You have 10 seconds to read",t,re.I):
+     dropped+=1;continue
+   if re.match(r"^[★☆]*\s*Questions?\b",t,re.I):
+    question=True;dropped+=1;continue
+   if re.match(r"^[★☆]*\s*No\.\s*\d+",t,re.I) or re.match(r"^[★☆]*\s*Question\s*:",t,re.I):
+    question=True;dropped+=1;continue
+   if re.search(r"Now mark your answer|This is the end of the listening|You have 10 seconds to",t,re.I):
     dropped+=1;continue
-   s=re.sub(r"^[☆★*\s]*(?:[A-Z]{1,3})\s*:\s*","",s)
-   if s:out.append(s)
- return " ".join(out),{"removed_lines":dropped}
+   if mode=="directions" or mode=="intro" or question:
+    dropped+=1;continue
+   if re.match(r"^\([A-J]\)\s+",t):
+    t=re.sub(r"^\([A-J]\)\s+","",t)
+   # Interview starts with an introduction that is spoken and is retained.
+   t=speaker.sub("",t)
+   if t:out.append(t)
+ return " ".join(out),{"removed_lines":dropped,"extraction":"spoken-content state machine"}
+
 def count(text):
  words=[w.lower().replace("’","'") for w in TOK.findall(text)]
  words=[w for w in words if len(w)>1]
