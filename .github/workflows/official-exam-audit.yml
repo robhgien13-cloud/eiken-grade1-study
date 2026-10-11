@@ -1,0 +1,22 @@
+name: Audit official EIKEN Grade 1 PDFs
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/official-exam-audit.yml'
+      - 'vocabulary/tools/audit_official_exams.py'
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pymupdf==1.26.4 wordfreq==3.1.1
+      - run: python vocabulary/tools/audit_official_exams.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: official-exam-preliminary-aggregate
+          path: vocabulary/analysis/official-exam-preliminary-aggregate.json
