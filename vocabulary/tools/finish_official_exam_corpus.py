@@ -79,7 +79,7 @@ def listening(doc):
     question=True;dropped+=1;continue
    if re.search(r"Now mark your answer|This is the end of the listening|You have 10 seconds to",t,re.I):
     dropped+=1;continue
-   if mode=="directions" or mode=="intro" or question:
+   if re.match(r"^(?:Interviewer\\s*\\(I\\)|I\\s*:)",t):\n    mode="spoken";question=False\n   if mode=="directions" or mode=="intro" or question:
     dropped+=1;continue
    if re.match(r"^\([A-J]\)\s+",t):
     t=re.sub(r"^\([A-J]\)\s+","",t)
