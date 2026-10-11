@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/finish-official-exam-corpus.yml'
       - 'vocabulary/tools/finish_official_exam_corpus.py'
+      - 'vocabulary/tools/compare_official_vocab_coverage.py'
 jobs:
   analyze:
     runs-on: ubuntu-latest
@@ -16,7 +17,10 @@ jobs:
           python-version: '3.11'
       - run: pip install pymupdf==1.26.4 wordfreq==3.1.1 simplemma==1.1.2
       - run: python vocabulary/tools/finish_official_exam_corpus.py
+      - run: python vocabulary/tools/compare_official_vocab_coverage.py
       - uses: actions/upload-artifact@v4
         with:
           name: official-exam-strict-aggregate
-          path: vocabulary/analysis/official-exam-strict-aggregate.json
+          path: |
+            vocabulary/analysis/official-exam-strict-aggregate.json
+            vocabulary/analysis/official-vocab-coverage.json
