@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/strict-corpus-acceptance.yml'
-      - 'vocabulary/tools/check_strict_corpus.py'
+      - 'vocabulary/tools/check_strict_corpus.py'\n      - 'vocabulary/tools/finish_official_exam_corpus.py'
 jobs:
   verify:
     runs-on: ubuntu-latest
