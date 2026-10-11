@@ -10,7 +10,7 @@ from wordfreq import zipf_frequency
 BASE="https://www.eiken.or.jp/eiken/exam/kakomon/"
 EXAMS={
  "2026-1":("2026-1-1ji-1kyu.pdf","2026-1-1ji_1kyuscript.pdf"),
- "2025-3":("2025-3-1ji-1kyu.pdf","2025-3-1ji_1kyuscript.pdf"),
+ "2025-3":("2025-3-1ji-1kyu.pdf","2025-3-1ji-1kyuscript.pdf"),
  "2026-2":("2026-2-1ji_1kyu.pdf","2026-2-1ji_1kyuscript.pdf")}
 # 1-indexed PDF pages. Readings are on pages 6-11; vocabulary multiple-choice 3-5,
 # writing 12-14, and listening answer choices 16-22 are intentionally excluded.
