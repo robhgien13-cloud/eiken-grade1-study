@@ -31,7 +31,14 @@ def reading(doc):
   # Page 9 is comprehension-only across observed official layouts.
   if pno==9:
    diagnostics.append({"page":pno,"status":"question-only excluded","accepted_lines":0});continue
-  qs=[(x,y) for x,y,s in ls if QSTART.match(s)]\n  # Page 7 contains a full passage followed by question blocks. PDF text order\n  # is more reliable here than comparing y coordinates across columns.\n  if pno==7 and qs:\n   first=next((i for i,(_,_,t) in enumerate(ls) if QSTART.match(t)),len(ls))\n   passage=[t for _,_,t in ls[:first] if not HEADER.search(t) and not re.fullmatch(r"[\\W\\d_]+",t)]\n   accepted.extend(passage)\n   diagnostics.append({"page":pno,"question_markers":len(qs),"accepted_lines":len(passage),"status":"pre-question text-order extraction"})\n   continue
+  qs=[(x,y) for x,y,s in ls if QSTART.match(s)]
+  # Page 7 has passage text before comprehension questions in PDF text order.
+  if pno==7 and qs:
+   first=next((i for i,(_,_,t) in enumerate(ls) if QSTART.match(t)),len(ls))
+   passage=[t for _,_,t in ls[:first] if not HEADER.search(t) and not re.fullmatch(r"[\W\d_]+",t)]
+   accepted.extend(passage)
+   diagnostics.append({"page":pno,"question_markers":len(qs),"accepted_lines":len(passage),"status":"pre-question text-order extraction"})
+   continue
   kept=[]
   for x,y,s in ls:
    if HEADER.search(s) or re.fullmatch(r"[\W\d_]+",s):continue
