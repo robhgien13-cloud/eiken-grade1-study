@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare Kelly independent CEFR annotations with EIKEN and cefrpy estimates.
 Aggregate-only output: do not redistribute Kelly vocabulary entries."""
-import collections,json,pathlib,urllib.request
+import collections,json,pathlib,re,urllib.request
 from cefrpy import CEFRAnalyzer
 from wordfreq import zipf_frequency
 from analyze_eiken_distribution import band, BANDS
@@ -36,6 +36,7 @@ def main():
         w=norm(entry.get("word","")); lv=str(entry.get("cefr","")).upper()
         if w and lv in LEVELS:kelly[w].add(lv)
     grade1=set()
+    original_spellings=collections.defaultdict(set)
     with urllib.request.urlopen(UPSTREAM,timeout=120) as f:
         for line in f:
             try:entry=json.loads(line)
@@ -43,13 +44,28 @@ def main():
             w=entry.get("word")
             if not isinstance(w,str) or not w.strip() or entry.get("isTypo") or entry.get("isPhrase"):continue
             n=(entry.get("count") or {}).get("1")
-            if isinstance(n,(int,float)) and n>0:grade1.add(norm(w))
+            if isinstance(n,(int,float)) and n>0:
+                grade1.add(norm(w))
+                original_spellings[norm(w)].add(w)
     a=CEFRAnalyzer(); counts=collections.Counter(); levels=collections.Counter()
     comparison=collections.Counter(); disagreements=collections.Counter()
     frequency=collections.defaultdict(collections.Counter)
     cleaning=collections.Counter(); cleaning_examples=collections.defaultdict(list)
     unmatched_zipf_5_to_6=[]
+    full_cleaning=collections.Counter()
+    full_examples=collections.defaultdict(list)
+    def classify(w):
+        forms=original_spellings[w]
+        if len(w)==1 and w.isalpha():return "exclude_single_letter"
+        if re.fullmatch(r"[a-z](?:\\.[a-z])+\\.?",w):return "exclude_dotted_initialism"
+        if any(form.isupper() and len(form)>1 for form in forms):return "review_acronym"
+        if any(form[:1].isupper() for form in forms):return "review_proper_name"
+        return "retain_unverified"
+
     for w in grade1:
+        decision=classify(w)
+        full_cleaning[decision]+=1
+        if decision!="retain_unverified" and len(full_examples[decision])<40:full_examples[decision].append(w)
         old={e["cefr"] for e in baseline.get(w,[]) if e["cefr"] in LEVELS}
         new=kelly.get(w,set())
         counts["total"]+=1
@@ -98,7 +114,7 @@ def main():
                             disagreements[estimated+" -> "+"/".join(sorted(new))]+=1
             else:counts["still_unmatched_after_kelly"]+=1
     result={"source":KELLY,"kelly_total_headwords":len(kelly),"counts":dict(counts),
-            "levels":dict(levels),"cleaning_audit":{"counts":dict(cleaning),"examples":dict(cleaning_examples),"note":"Only previously unmatched words evaluated; no original rows removed. Candidate lemmas require CEFR-source match and ambiguous candidates remain unassigned."},"unmatched_zipf_5_to_6":sorted(unmatched_zipf_5_to_6,key=lambda x:(-x["zipf"],x["word"])),"frequency_by_zipf_band":{k:dict(v) for k,v in frequency.items()},"cefrpy_vs_kelly_on_new_matches":dict(comparison),
+            "levels":dict(levels),"cleaning_audit":{"counts":dict(cleaning),"examples":dict(cleaning_examples),"full_population_screen":{"counts":dict(full_cleaning),"examples":dict(full_examples),"automatically_excluded":full_cleaning["exclude_single_letter"]+full_cleaning["exclude_dotted_initialism"],"retained_or_review":len(grade1)-full_cleaning["exclude_single_letter"]-full_cleaning["exclude_dotted_initialism"]},"note":"Only previously unmatched words evaluated; no original rows removed. Candidate lemmas require CEFR-source match and ambiguous candidates remain unassigned."},"unmatched_zipf_5_to_6":sorted(unmatched_zipf_5_to_6,key=lambda x:(-x["zipf"],x["word"])),"frequency_by_zipf_band":{k:dict(v) for k,v in frequency.items()},"cefrpy_vs_kelly_on_new_matches":dict(comparison),
             "cefrpy_disagreements_top":disagreements.most_common(12),
             "cautions":["Kelly is independent of CEFR-J but its CEFR methodology may differ.",
             "Exact headword matching, not sense or POS agreement.","Kelly derived data subject to original project terms.",
