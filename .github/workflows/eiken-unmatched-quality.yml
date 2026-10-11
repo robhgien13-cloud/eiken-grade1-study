@@ -1,0 +1,22 @@
+name: EIKEN unmatched word quality
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/eiken-unmatched-quality.yml'
+      - 'vocabulary/tools/analyze_unmatched.py'
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Analyze unmatched words
+        run: python vocabulary/tools/analyze_unmatched.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eiken-unmatched-quality-summary
+          path: vocabulary/analysis/eiken-unmatched-quality-summary.json
