@@ -79,39 +79,5 @@ def listening(doc):
     question=True;dropped+=1;continue
    if re.search(r"Now mark your answer|This is the end of the listening|You have 10 seconds to",t,re.I):
     dropped+=1;continue
-   if re.match(r"^(?:Interviewer\\s*\\(I\\)|I\\s*:)",t):\n    mode="spoken";question=False\n   if mode=="directions" or mode=="intro" or question:
-    dropped+=1;continue
-   if re.match(r"^\([A-J]\)\s+",t):
-    t=re.sub(r"^\([A-J]\)\s+","",t)
-   # Interview starts with an introduction that is spoken and is retained.
-   t=speaker.sub("",t)
-   if t:out.append(t)
- return " ".join(out),{"removed_lines":dropped,"extraction":"spoken-content state machine"}
-
-def count(text):
- words=[w.lower().replace("’","'") for w in TOK.findall(text)]
- words=[w for w in words if len(w)>1]
- lemmas=[lemmatize(w,lang="en") for w in words]
- # Proper names cannot be safely inferred from sentence-case text; keep all
- # but explicitly flag that this requires named-entity recognition.
- c=collections.Counter(lemmas)
- bands=collections.Counter()
- for w,n in c.items():
-  z=zipf_frequency(w,"en")
-  b=">=5" if z>=5 else "4-5" if z>=4 else "3-4" if z>=3 else "<3"
-  bands[b]+=n
- return {"tokens":len(words),"surface_types":len(set(words)),"lemma_types":len(c),"lemma_changes":sum(a!=b for a,b in zip(words,lemmas)),"zipf_token_bands":dict(bands)}
-def main():
- result={"status":"AUTOMATED_EXTRACTION_NOT_MANUALLY_VALIDATED","notes":["Reading question removal uses position and numbered-question markers; cannot certify all pages without visual/manual verification","Listening narrator removal is heuristic; cannot certify no contamination","simplemma context-free; proper names are not yet separated"],"exams":{}}
- for name,(q,s) in EXAMS.items():
-  result["exams"][name]={}
-  for section,f in [("reading",q),("listening",s)]:
-   try:
-    d=pdf(BASE+f)
-    text,diag=(reading(d) if section=="reading" else listening(d))
-    result["exams"][name][section]={**count(text),"diagnostics":diag}
-   except Exception as e:result["exams"][name][section]={"error":str(e)}
- p=pathlib.Path("vocabulary/analysis/official-exam-strict-aggregate.json")
- p.write_text(json.dumps(result,indent=2,ensure_ascii=False)+"\n")
- print(json.dumps(result,indent=2,ensure_ascii=False))
-if __name__=="__main__":main()
+   if re.match(r"^(?:Interviewer\\s*\\(I\\)|I\\s*:)",t):
+    mode="spoken";question=False
