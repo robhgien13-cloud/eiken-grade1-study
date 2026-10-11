@@ -3,7 +3,7 @@
 No official copyrighted passage text or per-word source inventory is published.
 Reading is limited to known pages; page-level contamination is tracked.
 """
-import collections,json,pathlib,re,urllib.request
+import collections,json,pathlib,re,urllib.request,time
 import fitz
 from simplemma import lemmatize
 from wordfreq import zipf_frequency
@@ -18,7 +18,15 @@ READING_PAGES=range(6,12)
 TOKEN=re.compile(r"[A-Za-z]+(?:['’-][A-Za-z]+)*")
 REMOVE=re.compile(r"(?:Grade 1|copyright|無断転載|公益財団|検定一次試験|mark your answer|now mark your answer|you have \d+ seconds|question no\.|^\s*no\.\s*\d+)",re.I)
 def get(url):
- with urllib.request.urlopen(url,timeout=120) as r:return fitz.open(stream=r.read(),filetype="pdf")
+ last=None
+ for attempt in range(4):
+  try:
+   req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0"})
+   with urllib.request.urlopen(req,timeout=120) as r:return fitz.open(stream=r.read(),filetype="pdf")
+  except Exception as e:
+   last=e
+   if attempt<3:time.sleep(2*(attempt+1))
+ raise last
 def cleaned_lines(doc,pages,mode):
  lines=[];removed=0
  for page in pages:
