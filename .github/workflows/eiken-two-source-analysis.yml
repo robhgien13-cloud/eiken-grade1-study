@@ -1,0 +1,22 @@
+name: Compare EIKEN vocabulary datasets
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/eiken-two-source-analysis.yml'
+      - 'vocabulary/tools/compare_two_eiken_sources.py'
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install wordfreq==3.1.1
+      - run: python vocabulary/tools/compare_two_eiken_sources.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eiken-source-comparison
+          path: vocabulary/analysis/two-eiken-sources-comparison.json
