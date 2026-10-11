@@ -6,6 +6,7 @@ on:
       - '.github/workflows/eiken-two-source-analysis.yml'
       - 'vocabulary/tools/compare_two_eiken_sources.py'
       - 'vocabulary/tools/analyze_eiken_distribution.py'
+      - 'vocabulary/tools/audit_cefrpy_coverage.py'
 jobs:
   compare:
     runs-on: ubuntu-latest
@@ -15,12 +16,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install wordfreq==3.1.1
+      - run: pip install wordfreq==3.1.1 cefrpy
       - run: python vocabulary/tools/compare_two_eiken_sources.py
       - run: python vocabulary/tools/analyze_eiken_distribution.py
+      - run: python vocabulary/tools/audit_cefrpy_coverage.py
       - uses: actions/upload-artifact@v4
         with:
           name: eiken-source-comparison
           path: |
             vocabulary/analysis/two-eiken-sources-comparison.json
             vocabulary/analysis/eiken-distribution-summary.json
+            vocabulary/analysis/cefrpy-unmatched-coverage.json
