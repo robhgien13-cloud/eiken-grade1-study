@@ -32,15 +32,15 @@ def reading(doc):
   if pno==9:
    diagnostics.append({"page":pno,"status":"question-only excluded","accepted_lines":0});continue
   qs=[(x,y) for x,y,s in ls if QSTART.match(s)]
-  # Page 7: full-width passage with choices at bottom. Question numbers
-  # also occur in cloze blanks, so only bottom-page markers count.
-  if pno==7:
+  # All official layouts use a horizontal separator before comprehension
+  # questions on pages 10 and 11. Page 7 has questions below its passage.
+  if pno in (7,10,11):
    height=doc[pno-1].rect.height
-   bottom_q=[y for x,y in qs if y>height*0.60]
-   cutoff=min(bottom_q) if bottom_q else height*0.76
-   passage=[t for x,y,t in ls if y<cutoff and x>doc[pno-1].rect.width*0.12 and not HEADER.search(t) and not QSTART.match(t) and not re.fullmatch(r"[\\W\\d_]+",t)]
+   # Questions start at about half page on 10/11, at bottom on 7.
+   max_fraction={7:0.76,10:0.52,11:0.52}[pno]
+   passage=[t for x,y,t in ls if y<height*max_fraction and not HEADER.search(t) and not QSTART.match(t) and not re.fullmatch(r"[\\W\\d_]+",t)]
    accepted.extend(passage)
-   diagnostics.append({"page":pno,"question_markers":len(qs),"accepted_lines":len(passage),"status":"page-coordinate cutoff","cutoff_fraction":round(cutoff/height,3)})
+   diagnostics.append({"page":pno,"question_markers":len(qs),"accepted_lines":len(passage),"status":"visual-layout cutoff","cutoff_fraction":max_fraction})
    continue
   kept=[]
   for x,y,s in ls:
