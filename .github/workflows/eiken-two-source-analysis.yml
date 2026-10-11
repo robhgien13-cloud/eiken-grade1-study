@@ -7,6 +7,7 @@ on:
       - 'vocabulary/tools/compare_two_eiken_sources.py'
       - 'vocabulary/tools/analyze_eiken_distribution.py'
       - 'vocabulary/tools/audit_cefrpy_coverage.py'
+      - 'vocabulary/tools/compare_kelly_cefr.py'
 jobs:
   compare:
     runs-on: ubuntu-latest
@@ -20,6 +21,7 @@ jobs:
       - run: python vocabulary/tools/compare_two_eiken_sources.py
       - run: python vocabulary/tools/analyze_eiken_distribution.py
       - run: python vocabulary/tools/audit_cefrpy_coverage.py
+      - run: python vocabulary/tools/compare_kelly_cefr.py
       - uses: actions/upload-artifact@v4
         with:
           name: eiken-source-comparison
@@ -27,3 +29,4 @@ jobs:
             vocabulary/analysis/two-eiken-sources-comparison.json
             vocabulary/analysis/eiken-distribution-summary.json
             vocabulary/analysis/cefrpy-unmatched-coverage.json
+            vocabulary/analysis/kelly-cefr-independent-crosscheck.json
