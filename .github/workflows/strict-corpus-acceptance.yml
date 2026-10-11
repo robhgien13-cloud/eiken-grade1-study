@@ -1,0 +1,26 @@
+name: Official corpus acceptance tests
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/strict-corpus-acceptance.yml'
+      - 'vocabulary/tools/check_strict_corpus.py'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pymupdf==1.26.4 wordfreq==3.1.1 simplemma==1.1.2
+      - run: python vocabulary/tools/finish_official_exam_corpus.py
+      - run: python vocabulary/tools/check_strict_corpus.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: official-corpus-acceptance
+          path: |
+            vocabulary/analysis/official-exam-strict-aggregate.json
+            vocabulary/analysis/official-exam-acceptance.json
