@@ -109,6 +109,6 @@ def main():
    except Exception as e:result["exams"][name][section]={"error":str(e)}
  p=pathlib.Path("vocabulary/analysis/official-exam-strict-aggregate.json")
  p.parent.mkdir(parents=True,exist_ok=True)
- p.write_text(json.dumps(result,indent=2,ensure_ascii=False)+"\\n")
+ p.write_text(json.dumps(result,indent=2,ensure_ascii=False)+chr(10))
  print(json.dumps(result,indent=2,ensure_ascii=False))
 if __name__=="__main__":main()
